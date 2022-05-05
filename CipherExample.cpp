@@ -7,7 +7,7 @@
 consteval std::array<char, 27> getLetters()
 {
     std::array<char, 27> ret{};
-    for (unsigned char i = 0; i < 26; i++)
+    for (char i = 0; i < 26; i++)
         ret.at(i) = ('a' + i);
     ret.at(26) = ' ';
     return ret;
@@ -63,19 +63,7 @@ char rotateBackward(char v, size_t rotation, bool includeSpaces)
     return letters[pos];
 }
 
-std::string cipher(std::string_view str, size_t rotations, bool forward, bool includeSpaces)
-{
-    std::string ret(str.size(), ' ');
-    for (size_t i = 0; i < str.size(); i++)
-    {
-        if (forward)
-            ret[i] = rotateForward(str[i], rotations + i, includeSpaces);
-        else
-            ret[i] = rotateBackward(str[i], rotations + i, includeSpaces);
-    }
-    return ret;
-}
-
+//Basic rotary cipher
 std::string rotCipher(std::string_view str, size_t rotations, bool forward, bool includeSpaces)
 {
     std::string ret(str.size(), ' ');
@@ -89,7 +77,22 @@ std::string rotCipher(std::string_view str, size_t rotations, bool forward, bool
     return ret;
 }
 
-//Rand is not portable so neither is the ciphertext produced by this function
+//Rotary cipher where each character has its index added to its number of rotations
+std::string incrementCipher(std::string_view str, size_t rotations, bool forward, bool includeSpaces)
+{
+    std::string ret(str.size(), ' ');
+    for (size_t i = 0; i < str.size(); i++)
+    {
+        if (forward)
+            ret[i] = rotateForward(str[i], rotations + i, includeSpaces);
+        else
+            ret[i] = rotateBackward(str[i], rotations + i, includeSpaces);
+    }
+    return ret;
+}
+
+//Cipher that uses a predicatable PRNG in order to rotate characters
+//Rand is not portable so neither is the ciphertext produced by this function, the ciphertext can not be used outside (or technically between runs of) the program
 std::string randCipher(std::string_view str, size_t key, bool forward, bool includeSpaces)
 {
     srand(static_cast<unsigned int>(key));
@@ -104,12 +107,16 @@ std::string randCipher(std::string_view str, size_t key, bool forward, bool incl
     return ret;
 }
 
+//A cipher function is any function taking four arguments 
+//  (a string, a rotation count, a direction and whether it includes spaces)
+//And returns a string
 template <class Fn>
 concept cipherFunction = requires(Fn f, std::string_view s, size_t k, bool fo, bool sp)
 {
     {f(s, k, fo, sp)} -> std::same_as<std::string>;
 };
 
+//Prints some example cases for a given cipher function
 template <cipherFunction Fn>
 void examine(Fn fn, std::string_view input, std::string_view name, std::string_view ID, size_t key, bool includeSpaces)
 {
@@ -165,7 +172,7 @@ int main()
 
     examine(rotCipher, in, "Rotary cipher without spaces", "Rn", key, false);
     examine(rotCipher, in, "Rotary cipher with spaces", "Rs", key, true);
-    examine(cipher, in, "Rotary cipher with index", "Ix", key, true);
+    examine(incrementCipher, in, "Rotary cipher with index", "Ix", key, true);
     examine(randCipher, in, "Random cipher", "Ra", key, true);
     std::cout << "Press [return] to continue...\n";
     std::cin.ignore();
